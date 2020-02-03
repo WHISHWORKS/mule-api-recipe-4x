@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns:db="http://www.mulesoft.org/schema/mule/db"
+	xmlns:salesforce="http://www.mulesoft.org/schema/mule/salesforce"
+	xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/salesforce http://www.mulesoft.org/schema/mule/salesforce/current/mule-salesforce.xsd
+http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+	<salesforce:sfdc-config name="Salesforce(Streaming)" doc:name="Salesforce Config" doc:id="40eec8b5-1748-4b06-8ad2-94c65db91624" >
+		<salesforce:cached-basic-connection username="xxxxxxx@xxxxxxx.com" password="xxxxxxxxx" securityToken="xxxxxxxxxxxx" />
+	</salesforce:sfdc-config>
+	<db:config name="Database_Config" doc:name="Database Config" doc:id="99ca2d7e-e3bd-481e-9129-aac0adb5ed8e" >
+		<db:generic-connection url="jdbc:mysql://xxx.xx.xxx.xxx:3306/salesforce_contacts?serverTimezone=UTC" driverClassName="com.mysql.cj.jdbc.Driver" user="bc_user" password="password" />
+	</db:config>
+	<flow name="streaming_apiFlow" doc:id="4b529f95-2426-4c71-930f-9fbc436218e9" >
+		<salesforce:subscribe-topic doc:name="Salesforce (Streaming)" doc:id="8a7ecff7-e7aa-4bb5-bbff-7c809487e6cc" config-ref="Salesforce(Streaming)" topic="ContactTopic"/>
+		<ee:transform doc:name="Transform Message" doc:id="95ede419-b671-495c-a2e3-d551574b7d6d" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/java
+---
+{
+	Id: payload.Id default "",
+	FirstName: payload.FirstName default "",
+	LastName: payload.LastName default "",
+	Email: payload.Email default ""
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<db:insert doc:name="Insert" doc:id="c47012e2-2ace-478d-8dfd-8859488a8e5d" config-ref="Database_Config">
+			<db:sql >insert into sfdcevent (Id, FirstName, LastName, Email) VALUES (:Id, :FirstName, :LastName, :Email)</db:sql>
+			<db:input-parameters ><![CDATA[#[payload]]]></db:input-parameters>
+		</db:insert>
+	</flow>
+</mule>

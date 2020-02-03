@@ -1,0 +1,305 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mule xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns:db="http://www.mulesoft.org/schema/mule/db" xmlns:jms="http://www.mulesoft.org/schema/mule/jms" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:apikit="http://www.mulesoft.org/schema/mule/mule-apikit" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd http://www.mulesoft.org/schema/mule/mule-apikit http://www.mulesoft.org/schema/mule/mule-apikit/current/mule-apikit.xsd 
+http://www.mulesoft.org/schema/mule/jms http://www.mulesoft.org/schema/mule/jms/current/mule-jms.xsd
+http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+    <http:listener-config name="async-httpListenerConfig">
+        <http:listener-connection host="0.0.0.0" port="8081" />
+    </http:listener-config>
+    <apikit:config name="async-config" api="async.raml" outboundHeadersMapName="outboundHeaders" httpStatusVarName="httpStatus" >
+		<apikit:flow-mappings >
+			<apikit:flow-mapping resource="/accounts" action="post" content-type="application/json" flow-ref="post:\accounts:application\json:async-config" />
+			<apikit:flow-mapping resource="/accounts/{id}" action="get" flow-ref="get:\accounts\(id):async-config" />
+		</apikit:flow-mappings>
+	</apikit:config>
+	<jms:config name="JMS_Config" doc:name="JMS Config" doc:id="7890fb83-cc4b-47dc-ab53-7de1a9a33ae1" >
+		<jms:active-mq-connection username="admin" password="admin" >
+			<jms:factory-configuration brokerUrl="tcp://localhost:61616" />
+		</jms:active-mq-connection>
+	</jms:config>
+	<db:config name="Database_Config" doc:name="Database Config" doc:id="0494aef7-4372-415b-b05e-6e41b69020e6" >
+		<db:my-sql-connection host="localhost" port="3306" user="bc_user" password="password" database="async_rest" />
+	</db:config>
+	<flow name="async-main">
+        <http:listener config-ref="async-httpListenerConfig" path="/api/*" outputMimeType="application/json" allowedMethods="GET, POST">
+            <http:response statusCode="#[vars.httpStatus default 200]">
+                <http:headers><![CDATA[#[vars.outboundHeaders default {}]]]></http:headers>
+            </http:response>
+            <http:error-response statusCode="#[vars.httpStatus default 500]">
+                <http:body><![CDATA[#[payload]]]></http:body>
+                <http:headers><![CDATA[#[vars.outboundHeaders default {}]]]></http:headers>
+            </http:error-response>
+        </http:listener>
+        <apikit:router config-ref="async-config" />
+        <error-handler>
+            <on-error-propagate type="APIKIT:BAD_REQUEST">
+                <ee:transform xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{message: "Bad request"}]]></ee:set-payload>
+                    </ee:message>
+                    <ee:variables>
+                        <ee:set-variable variableName="httpStatus">400</ee:set-variable>
+                    </ee:variables>
+                </ee:transform>
+            </on-error-propagate>
+            <on-error-propagate type="APIKIT:NOT_FOUND">
+                <ee:transform xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{message: "Resource not found"}]]></ee:set-payload>
+                    </ee:message>
+                    <ee:variables>
+                        <ee:set-variable variableName="httpStatus">404</ee:set-variable>
+                    </ee:variables>
+                </ee:transform>
+            </on-error-propagate>
+            <on-error-propagate type="APIKIT:METHOD_NOT_ALLOWED">
+                <ee:transform xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{message: "Method not allowed"}]]></ee:set-payload>
+                    </ee:message>
+                    <ee:variables>
+                        <ee:set-variable variableName="httpStatus">405</ee:set-variable>
+                    </ee:variables>
+                </ee:transform>
+            </on-error-propagate>
+            <on-error-propagate type="APIKIT:NOT_ACCEPTABLE">
+                <ee:transform xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{message: "Not acceptable"}]]></ee:set-payload>
+                    </ee:message>
+                    <ee:variables>
+                        <ee:set-variable variableName="httpStatus">406</ee:set-variable>
+                    </ee:variables>
+                </ee:transform>
+            </on-error-propagate>
+            <on-error-propagate type="APIKIT:UNSUPPORTED_MEDIA_TYPE">
+                <ee:transform xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{message: "Unsupported media type"}]]></ee:set-payload>
+                    </ee:message>
+                    <ee:variables>
+                        <ee:set-variable variableName="httpStatus">415</ee:set-variable>
+                    </ee:variables>
+                </ee:transform>
+            </on-error-propagate>
+            <on-error-propagate type="APIKIT:NOT_IMPLEMENTED">
+                <ee:transform xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{message: "Not Implemented"}]]></ee:set-payload>
+                    </ee:message>
+                    <ee:variables>
+                        <ee:set-variable variableName="httpStatus">501</ee:set-variable>
+                    </ee:variables>
+                </ee:transform>
+            </on-error-propagate>
+        </error-handler>
+    </flow>
+    <flow name="async-console">
+        <http:listener config-ref="async-httpListenerConfig" path="/console/*">
+            <http:response statusCode="#[vars.httpStatus default 200]">
+                <http:headers>#[vars.outboundHeaders default {}]</http:headers>
+            </http:response>
+            <http:error-response statusCode="#[vars.httpStatus default 500]">
+                <http:body>#[payload]</http:body>
+                <http:headers>#[vars.outboundHeaders default {}]</http:headers>
+            </http:error-response>
+        </http:listener>
+        <apikit:console config-ref="async-config" />
+        <error-handler>
+            <on-error-propagate type="APIKIT:NOT_FOUND">
+                <ee:transform xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{message: "Resource not found"}]]></ee:set-payload>
+                    </ee:message>
+                    <ee:variables>
+                        <ee:set-variable variableName="httpStatus">404</ee:set-variable>
+                    </ee:variables>
+                </ee:transform>
+            </on-error-propagate>
+        </error-handler>
+    </flow>
+    
+    
+	<flow name="get:\accounts\(id):async-config">
+        <logger level="INFO" doc:name="Logger" doc:id="f6a285ce-717a-4175-adc0-8a0d4e7c2e08" message='Initial Get logger: #[attributes.uriParams.id]'/>
+        <ee:transform xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" doc:id="e5c0b6d4-c971-4f9f-a964-e49283c30b6b">
+            <ee:variables>
+				<ee:set-variable variableName="varId" ><![CDATA[attributes.uriParams.id]]></ee:set-variable>
+            </ee:variables>
+        </ee:transform>
+		
+		<db:select doc:name="Get Data from DB" doc:id="7c2e3811-35e2-428c-8321-638ea3dceafd" config-ref="Database_Config">
+        	<db:sql>SELECT counter FROM async_jms_msg WHERE id = :id</db:sql>
+			<db:input-parameters><![CDATA[#['id' : vars.varId]]]></db:input-parameters>
+		</db:select>
+        
+		<choice doc:name="Choice" doc:id="6276bb47-be59-43c5-a22b-e206d5a887a7">
+            <when expression='#[payload[0].counter == 0]'>
+                <async doc:name="Async">
+
+					<db:update doc:name="In Progress" config-ref="Database_Config" doc:id="c09a7373-9ec4-4375-8a4f-2da7bac9824a">
+	                    <db:sql>UPDATE async_jms_msg SET counter = 1, status='Approval in progress' WHERE id = :id</db:sql>
+						<db:input-parameters><![CDATA[#[{'id' : vars.varId}]]]></db:input-parameters>
+	                </db:update>
+                    
+                    <db:select doc:name="Getting Status 1" config-ref="Database_Config">
+                        <db:sql>select id, status from async_jms_msg WHERE id = :id</db:sql>
+						<db:input-parameters><![CDATA[#[{'id' : vars.varId}]]]>
+						</db:input-parameters>
+                    </db:select>
+                    
+                    <set-payload value="#[payload]" doc:name="Set Payload"/>
+                </async>
+                <db:update doc:name="verification stage" config-ref="Database_Config">
+                	<db:sql>UPDATE async_jms_msg SET status='Verification started' WHERE id = :id</db:sql>
+					<db:input-parameters><![CDATA[#[{'id' : vars.varId}]]]></db:input-parameters>
+                </db:update>
+                
+                <db:select doc:name="Getting status 2" config-ref="Database_Config">
+                	<db:sql>select id, status from async_jms_msg WHERE id = :id</db:sql>
+					<db:input-parameters><![CDATA[#[{'id' : vars.varId}]]]>
+					</db:input-parameters>
+                </db:select>
+                <ee:transform doc:name="Transform Message" doc:id="1badf6ea-56f8-4c6a-a878-d5c6b9a728f4">
+					<ee:message>
+						<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+payload
+]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+				<set-payload value="#[payload]" doc:name="Set Payload"/>
+
+            </when>
+            
+            <when expression="#[payload[0].counter == 1]">
+               <async doc:name="Async">
+					<db:update doc:name="Final Update" config-ref="Database_Config" doc:id="0ca01aba-15b6-4649-8cfd-0ab905139149">
+                        <db:sql>UPDATE async_jms_msg SET counter = :counter, status='Application Accepted' WHERE id = :id</db:sql>
+						<db:input-parameters><![CDATA[#[{
+	'counter' : payload[0].counter + 1,
+	'id' : vars.varId }]]]>
+						</db:input-parameters>
+                    </db:update>
+				
+					<db:select doc:name="Getting Status 3" config-ref="Database_Config">
+	                    <db:sql>select id, status from async_jms_msg WHERE id = :id</db:sql>
+						<db:input-parameters><![CDATA[#[{'id' : vars.varId}]]]>
+						</db:input-parameters>
+	                </db:select>
+	                
+	                <set-payload value="#[payload]" doc:name="Set Payload"/>
+                </async>
+                
+                <db:select doc:name="Getting Status 4" config-ref="Database_Config">
+                    <db:sql>select id, status from async_jms_msg WHERE id = :id</db:sql>
+					<db:input-parameters><![CDATA[#[{'id' : vars.varId}]]]>
+					</db:input-parameters>
+                </db:select>
+                <ee:transform doc:name="Transform Message" doc:id="da5f1dfe-9dbc-4b8b-9aff-c16573bfd6a6">
+					<ee:message>
+						<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+payload]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+				<set-payload value="#[payload]" doc:name="Set Payload"/>
+
+            </when>
+            <when expression="#[payload[0].counter&gt;1]">
+				<db:select doc:name="Getting Status 5" config-ref="Database_Config" doc:id="228e2279-8c89-49e3-84b1-1126949966f8">
+                    <db:sql>select id, status from async_jms_msg WHERE id = :id</db:sql>
+						<db:input-parameters><![CDATA[#[{'id' : vars.varId}]]]>
+						</db:input-parameters>
+                </db:select>
+				<ee:transform doc:name="Transform Message" doc:id="c156da72-e7af-44a7-90d7-235518dad3c2">
+					<ee:message>
+						<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+	id: payload.id default "",
+	status: payload.status default ""
+}]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+				<set-payload value="#[payload]" doc:name="Set Payload" doc:id="19f696d3-900e-49bf-8b42-d70b8e022e4e" mimeType="application/json"/>
+            </when>
+
+        </choice>
+    </flow>
+    
+    
+    <flow name="post:\accounts:application\json:async-config">
+        <set-payload value="#[payload]" doc:name="Set Payload" doc:id="ba30d46f-a8eb-40f9-a4f3-f463ded1ad7b" />
+		<set-variable doc:name="Set Variable" doc:id="830828de-1e3a-44b5-aeb0-3d9d71b2bd9b" value="#[uuid()]" variableName="uniqueId"/>
+		<ee:transform xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xsi:schemaLocation="
+http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd" doc:id="ecc48bc3-000d-4431-a7fe-03ddd68203ef">
+            <ee:message>
+                <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+  id: vars.uniqueId,
+  name: payload.name,
+  Type: payload.Type,
+  Address: payload.Address
+}]]></ee:set-payload>
+            </ee:message>
+			<ee:variables >
+			</ee:variables>
+        </ee:transform>
+		<jms:publish doc:name="Publish" doc:id="3cac8d30-69d2-440d-bc0c-794a68bd9852" config-ref="JMS_Config" destination="AccountQueue" sendCorrelationId="AUTO">
+		</jms:publish>
+		<logger level="INFO" doc:name="Print Data after JMS" doc:id="83b50559-38a8-418d-8d5e-70904f131394" message="#[vars.uniqueId]"/>
+		<set-payload value='#[%dw 2.0
+output application/json
+---
+{ 
+	"Generated Id": vars.uniqueId, 
+	Status: "Initiated"
+}]' doc:name="Set Payload" doc:id="b74310f4-032c-408c-ac56-c53549799885" />
+    </flow>
+	<flow name="asyncFlow" doc:id="3aa6eafb-80a9-4288-b40d-ab34ef30cc1b" >
+		<jms:listener doc:name="Listener" doc:id="ddb7f5fc-edaf-4f99-b11f-157c3d1803af" config-ref="JMS_Config" destination="AccountQueue" numberOfConsumers="1">
+			<jms:response outboundContentType="application/json" />
+		</jms:listener>
+		<ee:transform doc:name="Transform Message" doc:id="cb9bd183-74c1-4088-8d72-a9694eb6dec3" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+payload]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<logger level="INFO" doc:name="Logger" doc:id="c8ddc40a-ce18-4b93-93d8-31f21d9520fa" message='#[payload]'/>
+		<db:insert doc:name="Insert into Database" doc:id="3e28b726-6b55-4171-aa57-35536efa0b4d" config-ref="Database_Config">
+			<db:sql>insert into async_jms_msg (id, counter, status, name, Type, Address) VALUES (:id, 0, 'Initiated',  :name, :Type, :Address)</db:sql>
+			<db:input-parameters ><![CDATA[#[payload]]]></db:input-parameters>
+		</db:insert>
+		<logger level="INFO" doc:name="Insertion Status" doc:id="ecf7f8d6-dd9d-444e-acc9-b70e0d6af038" message="payload"/>
+	</flow>
+</mule>

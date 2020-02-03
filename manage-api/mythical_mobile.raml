@@ -1,0 +1,81 @@
+
+
+#%RAML 1.0
+title: Mythical Mobile Experience API
+
+version: v1
+baseUri: http://localhost:8081/api/{version}
+mediaType: application/json
+
+types:
+   User: 
+     type: object
+     displayName: User
+     properties:
+       REGION_IDENTIFIER:
+         type: string
+         maxLength: 200
+       REGION_CODE?:
+         type: string
+         maxLength: 200
+     additionalProperties: false
+     examples:
+       example1:
+         REGION_IDENTIFIER: "12345"
+         REGION_CODE: "UK"
+       example2:
+         REGION_IDENTIFIER: "54321"
+
+/Mobile:
+     post:
+       description:   Create new User
+
+       headers: 
+            UserID: 
+                displayName: User ID
+                description: User ID for the Authentication
+                type: string
+                required: true
+            Password: 
+                displayName: Password
+                description: Password for the Authetication
+                type: string
+                required: true
+            Content-type: 
+                displayName: Content-type
+                description: either xml or json
+                type: string
+                required: false
+       queryParameters:
+         startTime:
+            displayName: Start Time
+            description: Start Time to get the Information
+            required: false
+            type: datetime
+         endTime:
+            displayName: End Time
+            description: End Time to get the Information
+            required: false
+            type: datetime
+         limit:
+          displayName: Limit 
+          description: Limit the number of records to fetch
+          type: integer
+          required: false 
+         offset:
+          displayName: Offset
+          description: Offset value for geting the details
+          type: integer
+          required: false
+
+
+
+
+       body:
+         application/json:
+           type: User
+       responses:
+         201:
+           body:
+             application/json:
+               type: User

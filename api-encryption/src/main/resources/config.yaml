@@ -1,0 +1,4 @@
+file:
+  encryptedFileLocation: "D:\\Workspace-7.4.0\\api-encryption\\encryptdir\\encrypted.txt"
+  decryptedFileLocation: "D:\\Workspace-7.4.0\\api-encryption\\decryptdir\\decrypted.txt"
+  encryptedFolderLocation: "D:\\Workspace-7.4.0\\api-encryption\\encryptdir"

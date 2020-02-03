@@ -1,0 +1,11 @@
+id: my-custom-policy
+name: my-custom-policy
+description: Test custom policy
+category: Custom
+type: custom
+resourceLevelSupported: true
+encryptionSupported: false
+standalone: true
+requiredCharacteristics: []
+providedCharacteristics: []
+configuration: []

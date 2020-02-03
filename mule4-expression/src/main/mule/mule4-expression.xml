@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns:http="http://www.mulesoft.org/schema/mule/http"
+	xmlns="http://www.mulesoft.org/schema/mule/core"
+	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+	<http:listener-config name="HTTP_Listener_config" doc:name="HTTP Listener config" doc:id="73771eaa-e5f8-4656-9a19-40bbf4cfacea" basePath="/api" >
+		<http:listener-connection host="0.0.0.0" port="8081" />
+	</http:listener-config>
+	<http:request-config name="HTTP_Request_configuration" doc:name="HTTP Request configuration" doc:id="55c0a0b7-8c13-46e2-90fa-bc7ec8c32bfc" basePath="/api" >
+		<http:request-connection host="localhost" port="8081" />
+	</http:request-config>
+	<flow name="mule4-expression-details-flow" doc:id="26e30066-9bb6-4df6-947d-2f3a76bc4950" >
+		<http:listener doc:name="Listener" doc:id="afa2c9b1-278c-4f50-b7e1-fd4af1a64139" config-ref="HTTP_Listener_config" path="/mule4expression" allowedMethods="POST" outputMimeType="application/json"/>
+		<set-payload value="#[payload ++ { organization : 'Mulesoft Inc.' }]" doc:name="Set Payload" doc:id="6091f9e9-3cf8-42a1-91b9-3cb72a7ddd7f" />
+	</flow>
+</mule>

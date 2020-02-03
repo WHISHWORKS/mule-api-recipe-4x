@@ -1,0 +1,33 @@
+Order object Salesforce:
+
+AccountId:
+	0012v00002c129PAAQ
+	
+ContractId:	
+8002v000001q78JAAQ
+
+Status:
+	Draft
+
+---------------------------------------------
+ where Id = '8012v00000Cun82AAB'
+ 
+ where AccountId =  '0012v00002c129PAAQ' 
+ -----------------------------------------------------
+ SELECT  AccountId, AccountNumber, BillingCity, ContractId, Id, Status, EffectiveDate, CreatedDate FROM Order 
+ 
+ SELECT ContractId, ContractName from Contract
+
+payload.EffectiveDate as DateTime {format: "yyyy-MM-dd'T'HH:mm:ss.SSSZ"}
+
+
+salesforce-ortder.uk-e1.cloudhub.io/api
+
+{
+  "AccountId": "0012v00002c129PAAQ",
+  "ContractId": "8002v000001q78JAAQ",
+  "EffectiveDate": "2020-02-02",
+  "Status": "Draft",
+  "BillingCity": "Chennai"
+}
+

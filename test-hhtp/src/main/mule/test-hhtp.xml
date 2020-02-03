@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:db="http://www.mulesoft.org/schema/mule/db" xmlns:api-gateway="http://www.mulesoft.org/schema/mule/api-gateway"
+	xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+	xmlns:file="http://www.mulesoft.org/schema/mule/file" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/file http://www.mulesoft.org/schema/mule/file/current/mule-file.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+http://www.mulesoft.org/schema/mule/api-gateway http://www.mulesoft.org/schema/mule/api-gateway/current/mule-api-gateway.xsd
+http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd">
+	<http:listener-config name="HTTP_Listener_config" doc:name="HTTP Listener config" doc:id="6148a401-1f4b-4e28-8855-50ef9bb22136" >
+		<http:listener-connection host="0.0.0.0" port="8081" />
+	</http:listener-config>
+	<api-gateway:autodiscovery apiId="15690860" doc:name="API Autodiscovery" doc:id="f2e3c265-c471-4f92-b549-c5a45e10a719" flowRef="test-hhtpFlow" />
+	<flow name="test-hhtpFlow" doc:id="a3d41102-af92-470a-8071-160f02b7cdda" >
+		<http:listener doc:name="Listener" doc:id="cd56fcc4-ff08-449d-97fc-380ae2de95af" path="/test" config-ref="HTTP_Listener_config"/>
+		<ee:transform doc:name="Transform Message" doc:id="fcd53110-2813-4624-a34c-db60ad70622b" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+import * from dw::core::Strings
+output application/json 
+
+var mainQry="dsql:SELECT contactid,emailaddress1,fullname,nickname FROM contact"
+
+
+var fName =  if (attributes.queryParams.first_name != null) ( "firstname== '" ++ attributes.queryParams.first_name ++ "' and ") else ""
+
+var lName =  if (attributes.queryParams.last_name != null) ( "lastname== '" ++ attributes.queryParams.last_name ++ "' and " ) else ""
+
+var email =  if (attributes.queryParams.email != null) ( "emailaddress1== '" ++ attributes.queryParams.email ++ "' and ") else ""
+
+var phone =  if (attributes.queryParams.phone != null) ( "telephone1== '" ++ attributes.queryParams.phone ++ "' and " ) else ""
+
+var condVar= if( (fName ++ lName ++ email ++ phone) == "" ) "" else " where "
+
+---
+{
+	"qryStr": substringBeforeLast( mainQry ++ condVar ++ fName ++ lName ++ email ++ phone , "and") 
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+	</flow>
+</mule>

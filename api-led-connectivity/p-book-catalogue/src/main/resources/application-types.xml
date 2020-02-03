@@ -1,0 +1,43 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<types:mule xmlns:types="http://www.mulesoft.org/schema/mule/types">
+  <types:catalog>
+    <types:type name="JSON" format="json">
+      <types:shape format="weave" example="example.json"><![CDATA[%dw 2.0
+
+type JSON = {|
+  Id: String, 
+  Title: String, 
+  Author: String, 
+  Price: String
+|} {"example": "{\\\"Id\\\":\\\"24\\\",\\\"Title\\\":\\\"Matilda\\\",\\\"Author\\\":\\\"Rohald Dahl\\\",\\\"Price\\\":\\\"\$5.21\\\"}"}
+
+]]></types:shape>
+    </types:type>
+    <types:type name="CSV" format="csv">
+      <types:shape format="weave"><![CDATA[%dw 2.0
+
+type CSV = Array<{|  Id: String,   Title: String,   "Author ": String,   Price: String|}>
+
+]]></types:shape>
+      <types:properties>
+        <types:property name="headerLineNumber" value="0"/>
+        <types:property name="header" value="true"/>
+        <types:property name="isQuotedString" value="false"/>
+      </types:properties>
+    </types:type>
+  </types:catalog>
+  <types:enrichment select="#f6487b2a-f88b-4e98-ba50-ccdfb4a8e6a0">
+    <types:processor-declaration>
+      <types:input-event>
+        <types:message>
+          <types:payload type="JSON"/>
+        </types:message>
+      </types:input-event>
+      <types:output-event>
+        <types:message>
+          <types:payload type="CSV"/>
+        </types:message>
+      </types:output-event>
+    </types:processor-declaration>
+  </types:enrichment>
+</types:mule>

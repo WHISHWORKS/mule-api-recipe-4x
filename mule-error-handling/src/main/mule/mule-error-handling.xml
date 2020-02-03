@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:cluster="http://www.mulesoft.org/schema/mule/ee/cluster" xmlns:wsc="http://www.mulesoft.org/schema/mule/wsc"
+	xmlns:validation="http://www.mulesoft.org/schema/mule/validation"
+	xmlns:scripting="http://www.mulesoft.org/schema/mule/scripting" xmlns:db="http://www.mulesoft.org/schema/mule/db" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd
+http://www.mulesoft.org/schema/mule/scripting http://www.mulesoft.org/schema/mule/scripting/current/mule-scripting.xsd
+http://www.mulesoft.org/schema/mule/validation http://www.mulesoft.org/schema/mule/validation/current/mule-validation.xsd">
+	<http:listener-config name="HTTP_Listener_config" doc:name="HTTP Listener config" doc:id="c4af9ec6-2a49-4a73-ad0e-55c612e7b546" >
+		<http:listener-connection host="0.0.0.0" port="8081" />
+	</http:listener-config>
+	<http:request-config name="HTTP_Request_configuration" doc:name="HTTP Request configuration" doc:id="42584c29-efd5-44ef-ac20-56359330e209" >
+		<http:request-connection host="localhost" port="8081" />
+	</http:request-config>
+	<configuration doc:name="Configuration" doc:id="84398868-5e01-430e-a65d-6135129ea056" defaultErrorHandler-ref="globalError-Handler" >
+	</configuration>
+	<error-handler name="globalError-Handler" doc:id="d49b7701-b23e-4f01-bb1f-7991240693eb" >
+		<on-error-continue enableNotifications="true" logException="true" doc:name="On Error Continue" doc:id="2687c55b-004a-4a38-974b-fc4ebad8feed" >
+			<set-payload value="#['Executed on error Contunue inside global error handler']" doc:name="Set Payload" doc:id="804f61e5-17af-4c8c-94cb-285a10f9a621" />
+		</on-error-continue>
+	</error-handler>
+	<flow name="child-flow" doc:id="ac7968e3-cb79-4bb3-bccb-7f5a588322f1" >
+		<http:request method="GET" doc:name="Request" doc:id="349aaf55-a444-45ab-bcfc-48c433e16b4f" path="/child" config-ref="HTTP_Request_configuration" />
+		<logger level="INFO" doc:name="Logger" doc:id="7a900c79-9bfd-48d5-a793-31d1399aa2e5" message="#[payload]"/>
+	</flow>
+	<flow name="mule-error-handlingFlow" doc:id="5c187951-17e3-46c2-af3b-1928d3e6b7cb" >
+		<http:listener doc:name="Listener" doc:id="1f4e21f1-3127-4c46-923e-94c26eafa888" config-ref="HTTP_Listener_config" path="/errors">
+			<http:error-response statusCode="#[vars.statusCode]" />
+		</http:listener>
+		<validation:is-not-null doc:name="Is not null" doc:id="a60900ae-c5dd-4cb7-8a1a-84e6c23fcbad" value="#[payload]"/>
+		<logger level="INFO" doc:name="Logger" doc:id="cbe2ef5e-0163-4186-ab38-3b5a7c40aec7" message="#[payload]"/>
+		<flow-ref doc:name="Flow Reference" doc:id="76ba673f-9cda-45b1-bdaa-623f94572e49" name="child-flow"/>
+		<error-handler >
+			<on-error-continue enableNotifications="true" logException="true" doc:name="On Error Continue" doc:id="6ead4353-4666-4567-9ba9-517e844c980f" type="VALIDATION:NULL, EXPRESSION, STREAM_MAXIMUM_SIZE_EXCEEDED">
+				<set-payload value="#['Executed On Error Continue']" doc:name="Set Payload" doc:id="c3747f69-2fa0-448e-a4c0-19672c48e694" />
+			</on-error-continue>
+		</error-handler>
+	</flow>
+</mule>

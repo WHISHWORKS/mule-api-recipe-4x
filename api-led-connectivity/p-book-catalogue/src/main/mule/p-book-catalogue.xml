@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns:http="http://www.mulesoft.org/schema/mule/http"
+	xmlns="http://www.mulesoft.org/schema/mule/core"
+	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+	<http:listener-config name="HTTP_Listener_config" doc:name="HTTP Listener config" doc:id="d7b7f0c9-4f4b-41b5-ac21-fb6f74701a21" >
+		<http:listener-connection host="0.0.0.0" port="8082" />
+	</http:listener-config>
+	<http:request-config name="HTTP_Request_configuration" doc:name="HTTP Request configuration" doc:id="b2c68bf5-0d42-4f5d-9b5a-78e5452ab72a" >
+		<http:request-connection host="localhost" port="8083" />
+	</http:request-config>
+	<flow name="p-book-catalogueFlow" doc:id="8c89138c-0b8e-4955-9d57-3304d3f9cf9e" >
+		<http:listener doc:name="Listener" doc:id="7cec9280-1c1e-432f-b7bc-90acd78ac259" config-ref="HTTP_Listener_config" path="/p-book-file"/>
+		<ee:transform doc:name="Transform Message" doc:id="f6487b2a-f88b-4e98-ba50-ccdfb4a8e6a0" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/csv headerLineNumber = 0 , header = true
+---
+[{
+	Id: payload.Id,
+	Title: payload.Title,
+	"Author ": payload.Author,
+	Price: payload.Price
+}]]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<http:request method="POST" doc:name="Request" doc:id="1a3cf67b-43b4-499a-b123-32f10a8a9e15" config-ref="HTTP_Request_configuration" path="/s-book-file"/>
+	</flow>
+</mule>

@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns:file="http://www.mulesoft.org/schema/mule/file"
+	xmlns:crypto="http://www.mulesoft.org/schema/mule/crypto"
+	xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/crypto http://www.mulesoft.org/schema/mule/crypto/current/mule-crypto.xsd
+http://www.mulesoft.org/schema/mule/file http://www.mulesoft.org/schema/mule/file/current/mule-file.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+	<http:listener-config name="HTTP_Listener_config" doc:name="HTTP Listener config" doc:id="2e62dc88-14a5-4ccc-bfd9-56732c58c3c6" >
+		<http:listener-connection host="localhost" port="8081" />
+	</http:listener-config>
+	<configuration-properties doc:name="Configuration properties" doc:id="9ceff94e-bd18-4d68-b55c-d8bd86e16458" file="config.yaml" />
+	<flow name="EncryptionFlow" doc:id="099eda13-aa8f-4b8c-94c9-41a5dcd85dd7" >
+		<http:listener doc:name="Listener" doc:id="b3b2bb42-78a1-4e49-bdcc-9bb30fafda2e" config-ref="HTTP_Listener_config" path="/test">
+		</http:listener>
+		<set-payload value="#['Encryption Decryption exercise.']" doc:name="Input" doc:id="11163964-2a6e-4338-af9a-e108217c4f00" />
+		<crypto:jce-encrypt-pbe doc:name="Encryption" doc:id="baeb22bf-8829-42db-9e9c-17f82d199b17" password="a-Sup3r_Secure-Passw0rd"/>
+		<file:write doc:name="Write into File" doc:id="a93952bc-cb80-4aaa-8bde-d66921e67051" path="${file.encryptedFileLocation}">
+			<file:content ><![CDATA[#[%dw 2.0
+---
+	payload]]]>
+			</file:content>
+		</file:write>
+		<logger level="INFO" doc:name="Encrypted data Value" doc:id="81bfbd11-c941-4ba9-9c40-ca4ce8e920e4" message="#[payload]"/>
+	</flow>
+	<flow name="DecryptionFlow" doc:id="f31e6206-7e06-412d-b0ea-b17a0acf80c0" >
+		<file:listener doc:name="Read encrypted data from file" doc:id="52b72cf8-e1b0-483f-86d6-c786354272c3" directory="${file.encryptedFolderLocation}" recursive="false" watermarkMode="MODIFIED_TIMESTAMP">
+			<scheduling-strategy >
+				<fixed-frequency />
+			</scheduling-strategy>
+		</file:listener>
+		<crypto:jce-decrypt-pbe doc:name="Decryption" doc:id="5c916fcc-b909-4c38-81f1-fc387733a1d9" password="a-Sup3r_Secure-Passw0rd"/>
+		<file:write doc:name="Write into file" doc:id="dbcfd27f-ece4-480c-9be7-af140fa0dd1b" path="${file.decryptedFileLocation}"/>
+	</flow>
+</mule>

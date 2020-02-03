@@ -1,0 +1,141 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mule xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+      xmlns="http://www.mulesoft.org/schema/mule/core"
+      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xmlns:http="http://www.mulesoft.org/schema/mule/http"
+      xmlns:proxy="http://www.mulesoft.org/schema/mule/proxy"
+      xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+      xmlns:api-gateway="http://www.mulesoft.org/schema/mule/api-gateway"
+      xmlns:rest-validator="http://www.mulesoft.org/schema/mule/rest-validator" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+        http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+        http://www.mulesoft.org/schema/mule/api-gateway http://www.mulesoft.org/schema/mule/api-gateway/current/mule-api-gateway.xsd
+        http://www.mulesoft.org/schema/mule/proxy http://www.mulesoft.org/schema/mule/proxy/current/mule-proxy.xsd
+        http://www.mulesoft.org/schema/mule/rest-validator http://www.mulesoft.org/schema/mule/rest-validator/current/mule-rest-validator.xsd
+        http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+
+    <configuration-properties file="config.properties"/>
+
+    <proxy:config name="proxy-config"/>
+
+    <api-gateway:autodiscovery apiId="${api.id}" flowRef="proxy"/>
+
+    <rest-validator:config name="configValidator"
+                           api="${implementation.api.spec}"
+                           parser="${implementation.api.parser}"
+                           disableValidations="${validation.disable}"
+                           queryParamsStrictValidation="${validation.strict.queryParams}"
+                           headersStrictValidation="${validation.strict.headers}"/>
+
+    <flow name="proxy">
+        <http:listener config-ref="http-listener-config" path="${proxy.path}">
+            <http:response statusCode="#[attributes.statusCode]" reasonPhrase="#[attributes.reasonPhrase]">
+                <http:headers>#[if (vars.proxyResponseHeaders?) vars.proxyResponseHeaders else {}]</http:headers>
+            </http:response>
+        </http:listener>
+
+        <ee:transform doc:name="Transform Message" doc:id="22a23eec-18c1-4188-b6fd-18639b9c768e" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/java
+---
+payload]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<choice doc:name="Choice" doc:id="38289c5f-ccf5-4ba1-822d-f666a41ec347" >
+			<when expression="#[payload.amount &gt;= 5000]">
+				<flow-ref doc:name="loan_amt&gt;$5000" doc:id="db4cfa40-e5ab-4b2d-a562-bb16a84bdc05" name="loan_amt&gt;$5000"/>
+			</when>
+			<otherwise >
+				<flow-ref doc:name="loan_amt&lt;$5000" doc:id="3442f812-75b1-4ff0-b761-3dc0cfbe0131" name="loan_amt&lt;$5000"/>
+			</otherwise>
+		</choice>
+		<rest-validator:validate-request config-ref="configValidator"/>
+
+        <proxy:request-headers config-ref="proxy-config" target="proxyRequestHeaders"/>
+
+        <http:request config-ref="http-request-config" method="#[attributes.method]" path="#[attributes.maskedRequestPath]">
+            <http:headers>#[vars.proxyRequestHeaders]</http:headers>
+            <http:uri-params>#[attributes.uriParams]</http:uri-params>
+            <http:query-params>#[attributes.queryParams]</http:query-params>
+            <http:response-validator>
+                <http:success-status-code-validator values="0..599"/>
+            </http:response-validator>
+        </http:request>
+		<proxy:response-headers config-ref="proxy-config" target="proxyResponseHeaders"/>
+
+        <error-handler>
+            <on-error-continue type="HTTP:TIMEOUT" logException="false">
+                <ee:transform>
+                    <ee:message>
+                        <ee:set-attributes>
+                            {
+                            statusCode: 504
+                            }
+                        </ee:set-attributes>
+                    </ee:message>
+                </ee:transform>
+            </on-error-continue>
+            <on-error-continue type="REST-VALIDATOR:BAD_REQUEST" logException="false">
+                <ee:transform>
+                    <ee:message>
+                        <ee:set-payload>output application/json --- {"error": "$(error.description)"}</ee:set-payload>
+                        <ee:set-attributes>
+                            {
+                            statusCode: 400
+                            }
+                        </ee:set-attributes>
+                    </ee:message>
+                </ee:transform>
+            </on-error-continue>
+            <on-error-continue type="REST-VALIDATOR:METHOD_NOT_ALLOWED" logException="false">
+                <ee:transform>
+                    <ee:message>
+                        <ee:set-payload>output application/json --- {"error": "$(error.description)"}</ee:set-payload>
+                        <ee:set-attributes>
+                            {
+                            statusCode: 405
+                            }
+                        </ee:set-attributes>
+                    </ee:message>
+                </ee:transform>
+            </on-error-continue>
+            <on-error-continue type="REST-VALIDATOR:RESOURCE_NOT_FOUND" logException="false">
+                <ee:transform>
+                    <ee:message>
+                        <ee:set-payload>output application/json --- {"error": "$(error.description)"}</ee:set-payload>
+                        <ee:set-attributes>
+                            {
+                            statusCode: 404
+                            }
+                        </ee:set-attributes>
+                    </ee:message>
+                </ee:transform>
+            </on-error-continue>
+        </error-handler>
+
+    </flow>
+
+    <sub-flow name="loan_amt&gt;$5000" doc:id="f8e28be3-2011-4ba5-bb89-6ee564bb112c" >
+		<set-payload value='#[{
+  "ReferenceID": "23456565",
+  "Status": "Require some clarification"
+   }]' doc:name="Set Payload" doc:id="016915e9-9292-4697-bb2a-24c1ac280bd8" />
+	</sub-flow>
+	<sub-flow name="loan_amt&lt;$5000" doc:id="b1f12cb8-3249-4758-84ef-28e415c8a0c8" >
+		<set-payload value='#[{
+  "ReferenceID": "1234567",
+  "Status": "Approved"
+}]' doc:name="Set Payload" doc:id="43bb7a4e-77c9-41c2-95f2-99c7c742984f" />
+	</sub-flow>
+	<flow name="console">
+        <http:listener config-ref="http-listener-config" path="/console/*">
+            <http:response statusCode="#[attributes.statusCode]" reasonPhrase="#[attributes.reasonPhrase]">
+                <http:headers>#[attributes.headers]</http:headers>
+            </http:response>
+        </http:listener>
+
+        <rest-validator:console config-ref="configValidator"/>
+
+    </flow>
+
+</mule>

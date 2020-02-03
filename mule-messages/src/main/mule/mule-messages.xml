@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:file="http://www.mulesoft.org/schema/mule/file" xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+	xmlns:http="http://www.mulesoft.org/schema/mule/http"
+	xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+http://www.mulesoft.org/schema/mule/file http://www.mulesoft.org/schema/mule/file/current/mule-file.xsd">
+	<http:listener-config name="HTTP_Listener_config" doc:name="HTTP Listener config" doc:id="ce77ad7d-a0ad-4de8-8587-8d3c0f7a7b9a" >
+		<http:listener-connection host="localhost" port="8081" />
+	</http:listener-config>
+	<file:config name="File_Config" doc:name="File Config" doc:id="de2b701e-bb8b-4423-b0f2-067c6b01b313" >
+		<file:connection workingDir="D:\Workspace-7.4.0\mule-messages\file-dir" />
+	</file:config>
+	<flow name="mule-messagesFlow" doc:id="c1b26944-601d-4d65-861d-504f198fbb17" >
+		<http:listener doc:name="Listener" doc:id="2431e915-a907-46d9-9b07-e047ba8b5aa8" config-ref="HTTP_Listener_config" path="/msg/*"/>
+		<ee:transform doc:name="Transform Message" doc:id="42daffdf-bf4d-4a4e-be0b-112dd73de1cb">
+			<ee:message>
+				<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+payload]]></ee:set-payload>
+			</ee:message>
+			<ee:variables >
+				<ee:set-variable variableName="file2name" ><![CDATA[%dw 2.0
+output application/java
+---
+payload.parts.'certificate'.headers.'Content-Disposition'.filename]]></ee:set-variable>
+				<ee:set-variable variableName="file1name" ><![CDATA[%dw 2.0
+output application/java
+---
+payload.parts.'profilePhoto'.headers.'Content-Disposition'.filename]]></ee:set-variable>
+			</ee:variables>
+		</ee:transform>
+		<file:write doc:name="Write File 1" doc:id="a4790b37-f0ca-4eaa-92a8-514b7be05ed4" config-ref="File_Config" path="#[vars.file1name]">
+			<file:content ><![CDATA[#[%dw 2.0
+output application/java
+input payload multipart/form-data
+---
+	payload.parts.'profilePhoto'.content]]]></file:content>
+		</file:write>
+		<file:write doc:name="Write File 2" doc:id="e1425cd6-869d-405b-b8ec-296d81a9d3a8" config-ref="File_Config" path="#[vars.file2name]">
+			<file:content ><![CDATA[#[%dw 2.0
+output application/java
+input payload multipart/form-data
+---
+	payload.parts.'certificate'.content]]]></file:content>
+		</file:write>
+		<ee:transform doc:name="Transform Message" doc:id="8200f6bc-5f71-4763-bf89-113fcca54c41" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+
+output application/json
+---
+{
+	'Enrollment Number: ': payload.parts.'studentId'.content  ++ '  ( Referral Id: ' ++ attributes.queryParams.refId ++ ' )', 
+	'Name: ': payload.parts.'firstName'.content ++ ' ' ++  payload.parts.'lastName'.content,
+	'Date of birth: ': payload.parts.'birthDate'.content,
+	'Category: ': attributes.headers.category,
+	'Profile photo file name: ': vars.file1name,
+	'Educational certificate file name: ': vars.file2name
+}
+]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<set-payload value="#[payload]" doc:name="Set Payload" doc:id="23c4405b-d9e3-446a-8367-267823b5620c" />
+	</flow>
+</mule>

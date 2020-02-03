@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:file="http://www.mulesoft.org/schema/mule/file" xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+	xmlns:db="http://www.mulesoft.org/schema/mule/db"
+	xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+http://www.mulesoft.org/schema/mule/file http://www.mulesoft.org/schema/mule/file/current/mule-file.xsd">
+	<http:listener-config name="HTTP_Listener_config" doc:name="HTTP Listener config" doc:id="4aa019d4-26a3-46ea-90a6-8c4a375c2b0f" basePath="">
+		<http:listener-connection host="0.0.0.0" port="8083" />
+	</http:listener-config>
+	<db:config name="Database_Config" doc:name="Database Config" doc:id="0323f983-2352-4d27-a8f2-cc0857f57108" >
+		<db:my-sql-connection host="${db.host}" port="${db.port}" user="${db.user}" password="password" database="${db.database}" />
+	</db:config>
+	<configuration-properties doc:name="Configuration properties" doc:id="79804ff4-ae43-4bb3-aa58-e5ce8444e9a4" file="mule-app.properties" />
+	<flow name="s-book-catalogue-db-flow" doc:id="95c8bd59-a5c0-46d7-8923-31f310ed1365" >
+		<http:listener doc:name="Listener" doc:id="48bd7753-510c-42dd-a480-4c79163db24c" config-ref="HTTP_Listener_config" path="/s-book-post" outputMimeType="application/json"/>
+		<ee:transform doc:name="Transform Message" doc:id="97422dfe-9c5f-4c9d-9fa4-0ee758eeab7a" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/java
+---
+payload]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<logger level="INFO" doc:name="Data before pushing in DB" doc:id="c76fa2e3-294b-45de-9d3c-5e90f8b1c5c8" message="Before DB******************#[payload] "/>
+		<db:insert doc:name="Add record to database" doc:id="873c7e22-c062-461f-b63d-9a4fd4360a5e" config-ref="Database_Config">
+			<db:sql >insert into books (Id, Title, Author, Price) VALUES (:Id, :Title, :Author, :Price)</db:sql>
+			<db:input-parameters ><![CDATA[#[payload]]]></db:input-parameters>
+		</db:insert>
+		<set-payload value='STATUS: Successfully Created' doc:name="Status" doc:id="0b0697b9-53d7-4579-ac4c-6ef648e6a7c8" />
+		<logger level="INFO" doc:name="Logger" doc:id="e587901c-b4e4-4021-8592-98ed0f4dd85d" />
+	</flow>
+	<flow name="s-book-catalogue-file-flow" doc:id="8fb32524-3ae2-47a6-b010-89572cb7ee9a" >
+		<http:listener doc:name="Listener" doc:id="11b1d2ab-7537-4778-be8c-a9c9a9bc04fd" config-ref="HTTP_Listener_config" path="/s-book-file"/>
+		<logger level="INFO" doc:name="Data before writting to file" doc:id="a4618e03-33d2-4c8a-88bd-c66a5a6c9573" message="Data before writting********************#[payload]"/>
+		<file:write doc:name="Write" doc:id="3c8c8c3b-9525-4f71-97bb-ea6b152e32ea" path="D:\Workspace-7.4.0\s-book-catalogue\write\csv\books.csv"/>
+		<set-payload value='"File written successfully"' doc:name="Status" doc:id="c8cff9de-9950-4e73-b595-8887733d4c94" />
+	</flow>
+</mule>

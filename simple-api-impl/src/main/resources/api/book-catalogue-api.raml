@@ -1,0 +1,64 @@
+#%RAML 1.0
+title: Book Catalogue
+version: 1.0
+baseUri: http://localhost:8081/api
+
+types: 
+  book : !include ./type/book-type.raml
+
+/catalogue:
+  /books:
+    displayName: books
+    post:
+      description: Add a new book to catalogue
+      body:
+        application/json:
+      responses:
+        200:
+          body:
+            application/json:
+              type: book
+              example: |
+                {
+                  "Id": "24",
+                  "Title": "Matilda",
+                  "Author": "Rohald Dahl",
+                  "Price": "$5.21"
+                }
+        500:
+          body:
+            application/json:
+              example: |
+                {
+                  "errorMessage": "The book couldn't be entered."
+                }    
+    /{bookId}:
+      get:
+        description: Get books from the catalogue
+        responses:
+          200:
+            body:
+              application/json:
+                example: |
+                  {
+                    "Id": "24",
+                    "Title": "Matilda",
+                    "Author": "Rohald Dahl",
+                    "Price": "$5.21"
+                  }
+      put:
+        description: Modify a book Price
+        body:
+          application/json:
+        responses:
+          200:
+            body:
+              application/json:
+                type: book
+                example: |
+                  {
+                    "Id": "24",
+                    "Title": "Matilda",
+                    "Author": "Rohald Dahl",
+                    "Price": "$5.21"
+                  }

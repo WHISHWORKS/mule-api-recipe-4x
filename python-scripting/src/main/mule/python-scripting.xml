@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns:scripting="http://www.mulesoft.org/schema/mule/scripting"
+	xmlns:http="http://www.mulesoft.org/schema/mule/http"
+	xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/scripting http://www.mulesoft.org/schema/mule/scripting/current/mule-scripting.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+	<http:listener-config name="HTTP_Listener_config" doc:name="HTTP Listener config" doc:id="11a856a7-d51c-432e-b423-ae08962ec43c" >
+		<http:listener-connection host="localhost" port="8081" />
+	</http:listener-config>
+	<flow name="python-scriptingFlow" doc:id="efc34586-1279-4d77-b565-6369b7e00631" >
+		<http:listener doc:name="Listener" doc:id="98703908-e3a8-4d68-bab3-b477770e066f" config-ref="HTTP_Listener_config" path="/script/*"/>
+		<ee:transform doc:name="Transform Message" doc:id="d3e92868-5cad-49b7-9e33-aa008c082321" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/java
+---
+{
+}]]></ee:set-payload>
+			</ee:message>
+			<ee:variables >
+				<ee:set-variable variableName="num1" ><![CDATA[attributes.queryParams.n1]]></ee:set-variable>
+				<ee:set-variable variableName="num2" ><![CDATA[attributes.queryParams.n2]]></ee:set-variable>
+			</ee:variables>
+		</ee:transform>
+		<scripting:execute doc:name="Execute" doc:id="d11cd8e3-f547-40f4-8cc2-fdc955f7ce6e" engine="jython">
+			<scripting:code >${file::addTwo.py}</scripting:code>
+			<scripting:parameters ><![CDATA[#[{n1: vars.num1 as Number, n2: vars.num2 as Number}]]]></scripting:parameters>
+		</scripting:execute>
+		<set-payload value="#[%dw 2.0
+output application/json
+---
+payload]" doc:name="Set Payload" doc:id="aa837069-62b2-43a5-ac66-d9b29ab1882f" />
+	</flow>
+</mule>

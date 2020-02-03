@@ -1,0 +1,366 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mule xmlns:json="http://www.mulesoft.org/schema/mule/json"
+	xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns:db="http://www.mulesoft.org/schema/mule/db" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:apikit="http://www.mulesoft.org/schema/mule/mule-apikit" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd http://www.mulesoft.org/schema/mule/mule-apikit http://www.mulesoft.org/schema/mule/mule-apikit/current/mule-apikit.xsd 
+http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+    <http:listener-config name="book-catalogue-httpListenerConfig">
+        <http:listener-connection host="0.0.0.0" port="8081" />
+    </http:listener-config>
+    <apikit:config name="book-catalogue-config" api="book-catalogue.raml" outboundHeadersMapName="outboundHeaders" httpStatusVarName="httpStatus" >
+		<apikit:flow-mappings >
+			<apikit:flow-mapping resource="/catalogue/books" action="post" content-type="application/json" flow-ref="post:\catalogue\books:application\json:book-catalogue-config" />
+			<apikit:flow-mapping resource="/catalogue/books/{bookId}" action="get" flow-ref="get:\catalogue\books\(bookId):book-catalogue-config" />
+		</apikit:flow-mappings>
+	</apikit:config>
+	<db:config name="MySQL_Database_Config" doc:name="Database Config" doc:id="53bd3f68-938c-42b4-b244-4f4235406a0b" >
+		<db:generic-connection url="jdbc:mysql://xxx.xx.xxx.xxx:3306/book_catalogue?serverTimezone=UTC" driverClassName="com.mysql.cj.jdbc.Driver" user="bc_user" password="password" />
+	</db:config>
+	<flow name="book-catalogue-main">
+        <http:listener config-ref="book-catalogue-httpListenerConfig" path="/api/*" outputMimeType="application/json">
+            <http:response statusCode="#[vars.httpStatus default 200]">
+                <http:headers><![CDATA[#[vars.outboundHeaders default {}]]]></http:headers>
+            </http:response>
+            <http:error-response statusCode="#[vars.httpStatus default 500]">
+                <http:body><![CDATA[#[payload]]]></http:body>
+                <http:headers><![CDATA[#[vars.outboundHeaders default {}]]]></http:headers>
+            </http:error-response>
+        </http:listener>
+        <apikit:router config-ref="book-catalogue-config" />
+        <error-handler>
+            <on-error-propagate type="APIKIT:BAD_REQUEST">
+                <ee:transform xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{message: "Bad request"}]]></ee:set-payload>
+                    </ee:message>
+                    <ee:variables>
+                        <ee:set-variable variableName="httpStatus">400</ee:set-variable>
+                    </ee:variables>
+                </ee:transform>
+            </on-error-propagate>
+            <on-error-propagate type="APIKIT:NOT_FOUND">
+                <ee:transform xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{message: "Resource not found"}]]></ee:set-payload>
+                    </ee:message>
+                    <ee:variables>
+                        <ee:set-variable variableName="httpStatus">404</ee:set-variable>
+                    </ee:variables>
+                </ee:transform>
+            </on-error-propagate>
+            <on-error-propagate type="APIKIT:METHOD_NOT_ALLOWED">
+                <ee:transform xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{message: "Method not allowed"}]]></ee:set-payload>
+                    </ee:message>
+                    <ee:variables>
+                        <ee:set-variable variableName="httpStatus">405</ee:set-variable>
+                    </ee:variables>
+                </ee:transform>
+            </on-error-propagate>
+            <on-error-propagate type="APIKIT:NOT_ACCEPTABLE">
+                <ee:transform xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{message: "Not acceptable"}]]></ee:set-payload>
+                    </ee:message>
+                    <ee:variables>
+                        <ee:set-variable variableName="httpStatus">406</ee:set-variable>
+                    </ee:variables>
+                </ee:transform>
+            </on-error-propagate>
+            <on-error-propagate type="APIKIT:UNSUPPORTED_MEDIA_TYPE">
+                <ee:transform xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{message: "Unsupported media type"}]]></ee:set-payload>
+                    </ee:message>
+                    <ee:variables>
+                        <ee:set-variable variableName="httpStatus">415</ee:set-variable>
+                    </ee:variables>
+                </ee:transform>
+            </on-error-propagate>
+            <on-error-propagate type="APIKIT:NOT_IMPLEMENTED">
+                <ee:transform xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{message: "Not Implemented"}]]></ee:set-payload>
+                    </ee:message>
+                    <ee:variables>
+                        <ee:set-variable variableName="httpStatus">501</ee:set-variable>
+                    </ee:variables>
+                </ee:transform>
+            </on-error-propagate>
+        </error-handler>
+    </flow>
+    <flow name="book-catalogue-console">
+        <http:listener config-ref="book-catalogue-httpListenerConfig" path="/console/*">
+            <http:response statusCode="#[vars.httpStatus default 200]">
+                <http:headers>#[vars.outboundHeaders default {}]</http:headers>
+            </http:response>
+            <http:error-response statusCode="#[vars.httpStatus default 500]">
+                <http:body>#[payload]</http:body>
+                <http:headers>#[vars.outboundHeaders default {}]</http:headers>
+            </http:error-response>
+        </http:listener>
+        <apikit:console config-ref="book-catalogue-config" />
+        <error-handler>
+            <on-error-propagate type="APIKIT:NOT_FOUND">
+                <ee:transform xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{message: "Resource not found"}]]></ee:set-payload>
+                    </ee:message>
+                    <ee:variables>
+                        <ee:set-variable variableName="httpStatus">404</ee:set-variable>
+                    </ee:variables>
+                </ee:transform>
+            </on-error-propagate>
+        </error-handler>
+    </flow>
+    <flow name="put:\catalogue\books\(bookId):application\json:book-catalogue-config">
+        <ee:transform xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" doc:id="42baac58-919a-4bc1-8aee-5a4e25265e40">
+            <ee:variables>
+                <ee:set-variable variableName="bookId"><![CDATA[attributes.uriParams.'bookId']]></ee:set-variable>
+            </ee:variables>
+        </ee:transform>
+        <ee:transform xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd" doc:id="d5dad5cb-c169-4fe0-83df-744faa78c134">
+            <ee:message>
+                <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+	Id: payload.Id,
+	Title: payload.Title,
+	Author: payload.Author,
+	Price:payload.Price
+}]]></ee:set-payload>
+            </ee:message>
+        </ee:transform>
+		<db:select doc:name="Check if the bookId exists" doc:id="ee79e3a2-a06b-4e95-9e83-4f1dc0129dff" config-ref="MySQL_Database_Config">
+			<db:sql >SELECT  * FROM books WHERE Id = :Id</db:sql>
+			<db:input-parameters ><![CDATA[Id: #[attributes.uriParams.bookId]]]></db:input-parameters>
+		</db:select>
+		
+		
+		<ee:transform doc:name="Transform Message" doc:id="d403b82e-eaff-4b3f-819f-7ae9976266ca" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	Id: payload.Id,
+	Title: payload.Title,
+	Author: payload.Author,
+	Price: payload.Price
+}]]></ee:set-payload>
+			</ee:message>
+			<ee:variables >
+				<ee:set-variable variableName="rowSize" ><![CDATA[sizeOf(payload) ]]></ee:set-variable>
+			</ee:variables>
+		</ee:transform>
+		<choice doc:name="Choice">
+            <when expression="#[vars.rowSize &gt; 0]">
+                <db:update doc:name="Update the Database" doc:id="a67eecb4-2a4a-49e0-ba78-4fcbb3ea1acb" config-ref="MySQL_Database_Config">
+					<db:sql >UPDATE books set Id = : Id, Title = :Title, Author = :Author,  Price = :Price WHERE Id = :Id</db:sql>
+					<db:input-parameters><![CDATA[#[{
+	'Id' : payload.Id,
+	'Title' : payload.Title,
+	'Author' : payload.Author,
+	'Price' : payload.Price,
+	'id' : attributes.uriParams.bookId }]]]>
+						</db:input-parameters>
+				</db:update>
+				<db:select config-ref="MySQL_Database_Config" doc:name="Get the response fron the database">
+                    <db:sql >SELECT  * FROM books WHERE Id = :Id</db:sql>
+					<db:input-parameters ><![CDATA[#[payload]]]></db:input-parameters>
+			    </db:select>
+                <ee:transform doc:name="Transform Message" doc:id="aef8bbfb-13c4-4501-bfc5-5ddf37c63b7f">
+					<ee:message>
+						<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+payload]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+				<logger message="Modified the record" level="INFO" doc:name="Logger" />
+            </when>
+            <otherwise>
+                <set-payload value="{Message: Book Id doesnot exist}" doc:name="Set Payload" />
+                <logger message="Record for bookId does not exists" level="INFO" doc:name="Logger" />
+            </otherwise>
+        </choice>
+		
+		
+    </flow>
+    <flow name="delete:\catalogue\books\(bookId):book-catalogue-config">
+        <logger level="INFO" doc:name="Logger" doc:id="9f2e7e0b-91c9-43aa-be79-ed65513696ed" message="#[attributes.uriParams.bookId]"/>
+		<ee:transform xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" doc:id="7cc1377a-7fcb-4fc0-ba0c-bdd3bc41fd74">
+            <ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	Id: attributes.uriParams.bookId
+}]]></ee:set-payload>
+			</ee:message>
+			<ee:variables>
+                <ee:set-variable variableName="bookId"><![CDATA[%dw 2.0
+output application/json
+---
+{
+	Id: attributes.uriParams.bookId
+}]]></ee:set-variable>
+            </ee:variables>
+        </ee:transform>
+		<db:select doc:name="Get record from database for the bookId" doc:id="9d846344-e643-4e2c-ba05-adda68a63d70" config-ref="MySQL_Database_Config">
+			<db:sql >SELECT * FROM books where Id = :Id</db:sql>
+			<db:input-parameters ><![CDATA[#[payload]]]></db:input-parameters>
+		</db:select>
+		<ee:transform doc:name="Transform Message" doc:id="5b09f1bc-05dd-431b-a70e-ba185060ecd5" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	Id: payload.Id,
+	Title: payload.Title,
+	Author: payload.Author,
+	Price: payload.Price
+}]]></ee:set-payload>
+			</ee:message>
+			<ee:variables >
+				<ee:set-variable variableName="rowSize" ><![CDATA[sizeOf(payload) ]]></ee:set-variable>
+			</ee:variables>
+		</ee:transform>
+		<choice doc:name="Choice" doc:id="a44684af-5fe9-40c1-a40d-2a466de16657" >
+			<when expression="#[vars.rowSize &gt; 0]">
+				<db:delete doc:name="Delete" doc:id="b1576dd1-85d1-439c-b8c6-b8261c34fde1" config-ref="MySQL_Database_Config">
+					<db:sql >delete from books where  Id = :Id</db:sql>
+					<db:input-parameters ><![CDATA[#[{'Id': attributes.uriParams.bookId}]]]></db:input-parameters>
+				</db:delete>
+				<ee:transform doc:name="Transform Message" doc:id="52de7209-502b-441f-8789-7e4419dac6aa">
+					<ee:message>
+						<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+payload]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+				<set-payload doc:name="Set Payload" doc:id="7a5530c4-a9c0-4eb7-a688-700785d8d4c7" value="#[%dw 2.0
+output application/json
+---
+{
+	'Status': 'Successfully deleted'
+}]"/>
+			</when>
+			<otherwise >
+				<logger level="INFO" doc:name="Logger" doc:id="619adb63-15a1-4182-b0e5-decb6fd9d95b" message="Record for bookId does not exists"/>
+			</otherwise>
+		</choice>
+    </flow>
+    
+    <flow name="get:\catalogue\books\(bookId):book-catalogue-config">
+		<logger level="INFO" doc:name="Logger" doc:id="3f3483e5-d34a-4fc6-bf2c-76e9800709fa" message="attributes.uriParams.bookId"/>
+		<ee:transform doc:name="Transform Message" doc:id="d266a4a7-384a-417f-9971-4eb4951d7dc5" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	Id: attributes.uriParams.bookId
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<db:select doc:name="Get record from database for the bookId" doc:id="002a39e3-46c3-4362-bd72-daa5430ab7e1" config-ref="MySQL_Database_Config">
+			<db:sql >SELECT  * FROM books WHERE Id = :Id
+</db:sql>
+			<db:input-parameters ><![CDATA[#[{'Id': attributes.uriParams.bookId}]]]></db:input-parameters>
+		</db:select>
+		<ee:transform doc:name="Transform Message" doc:id="c0d1a07e-c6af-4dc6-b6c9-358c8b9e6d0b" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	Id: payload.Id,
+	Title: payload.Title,
+	Author: payload.Author,
+	Price: payload.Price
+}]]></ee:set-payload>
+			</ee:message>
+			<ee:variables >
+				<ee:set-variable variableName="rowSize" ><![CDATA[sizeOf(payload) ]]></ee:set-variable>
+			</ee:variables>
+		</ee:transform>
+		<choice doc:name="Choice" doc:id="cc09237b-44a6-4191-964f-1bb2f66637cd" >
+			<when expression="#[vars.rowsize &gt; 0]">
+				<ee:transform doc:name="Transform Message" doc:id="f9df8e5e-038e-49ba-9a0f-869c72b3c9be">
+					<ee:message>
+						<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+payload]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+				<set-payload value="#[payload]" doc:name="Set Payload" doc:id="fb932186-10b0-409a-a78b-78837eec1f7e" />
+			</when>
+			<otherwise >
+				<set-payload value="#['Record for bookId does not exists.']" doc:name="Set Payload" doc:id="d6cc43aa-4af5-4ad6-a3a2-b95e08f49968" />
+			</otherwise>
+		</choice>
+    </flow>
+    
+    <flow name="post:\catalogue\books:application\json:book-catalogue-config">
+        <set-payload value="#[payload]" doc:name="Set Payload" doc:id="e1532694-ae37-4a51-a933-fb275a53b887" />
+		<ee:transform xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xsi:schemaLocation="
+http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd 
+http://www.mulesoft.org/schema/mule/json http://www.mulesoft.org/schema/mule/json/current/mule-json.xsd http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd" doc:id="7e449777-b397-4b0d-bcce-e42a7fa269ae">
+            <ee:message>
+                <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+	Id: payload.Id,
+	Title: payload.Title,
+	Author: payload.Author,
+	Price: payload.Price
+}]]></ee:set-payload>
+            </ee:message>
+        </ee:transform>
+		<db:insert doc:name="Add record to database" doc:id="b4bd10ec-2f61-4cba-af34-55a6a630b7d2" config-ref="MySQL_Database_Config">
+			<db:sql >Insert into books (Id, Title, Author, Price) Values (:Id, :Title, :Author, :Price)		</db:sql>
+			<db:input-parameters ><![CDATA[#[payload]]]></db:input-parameters>
+		</db:insert>
+		<ee:transform doc:name="Transform Message" doc:id="351cad68-6888-420f-8fcb-d6d8aebb41e5" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+payload]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<set-payload value="#[%dw 2.0
+output application/json
+---
+{
+	'STATUS': 'Successfully Created'
+}]" doc:name="Set Payload" doc:id="3af9a5e6-a492-487b-bbb6-f6262a57da15" />
+    </flow>
+</mule>

@@ -1,0 +1,112 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<types:mule xmlns:types="http://www.mulesoft.org/schema/mule/types">
+  <types:catalog>
+    <types:type name="catalogue" format="json">
+      <types:shape format="weave" example="examples/example.json"><![CDATA[%dw 2.0
+
+type catalogue = {|
+  Id: Number {"typeId": "int"}, 
+  Title: String, 
+  Author: String, 
+  Price: String
+|} {"example": "{\\\"Id\\\":24,\\\"Title\\\":\\\"Matilda\\\",\\\"Author\\\":\\\"Rohald Dahl\\\",\\\"Price\\\":\\\"\$5.21\\\"}"}
+
+]]></types:shape>
+    </types:type>
+  </types:catalog>
+  <types:enrichment select="#7e449777-b397-4b0d-bcce-e42a7fa269ae">
+    <types:processor-declaration>
+      <types:input-event>
+        <types:message>
+          <types:payload type="catalogue"/>
+        </types:message>
+      </types:input-event>
+      <types:output-event>
+        <types:message>
+          <types:payload type="catalogue"/>
+        </types:message>
+      </types:output-event>
+    </types:processor-declaration>
+  </types:enrichment>
+  <types:enrichment select="#f9df8e5e-038e-49ba-9a0f-869c72b3c9be">
+    <types:processor-declaration>
+      <types:output-event>
+        <types:message>
+          <types:payload type="catalogue"/>
+        </types:message>
+      </types:output-event>
+    </types:processor-declaration>
+  </types:enrichment>
+  <types:enrichment select="#7cc1377a-7fcb-4fc0-ba0c-bdd3bc41fd74">
+    <types:processor-declaration>
+      <types:input-event>
+        <types:message>
+          <types:payload type="catalogue"/>
+        </types:message>
+      </types:input-event>
+      <types:output-event>
+        <types:variables>
+          <types:variable name="bookId" type="catalogue"/>
+        </types:variables>
+      </types:output-event>
+    </types:processor-declaration>
+  </types:enrichment>
+  <types:enrichment select="#c0d1a07e-c6af-4dc6-b6c9-358c8b9e6d0b">
+    <types:processor-declaration>
+      <types:input-event>
+        <types:message>
+          <types:payload type="catalogue"/>
+        </types:message>
+      </types:input-event>
+      <types:output-event>
+        <types:message>
+          <types:payload type="catalogue"/>
+        </types:message>
+      </types:output-event>
+    </types:processor-declaration>
+  </types:enrichment>
+  <types:enrichment select="#d266a4a7-384a-417f-9971-4eb4951d7dc5">
+    <types:processor-declaration>
+      <types:input-event>
+        <types:message>
+          <types:payload type="catalogue"/>
+        </types:message>
+      </types:input-event>
+      <types:output-event>
+        <types:message>
+          <types:payload type="catalogue"/>
+        </types:message>
+      </types:output-event>
+    </types:processor-declaration>
+  </types:enrichment>
+  <types:enrichment select="#d5dad5cb-c169-4fe0-83df-744faa78c134">
+    <types:processor-declaration>
+      <types:input-event>
+        <types:message>
+          <types:payload type="catalogue"/>
+        </types:message>
+      </types:input-event>
+      <types:output-event>
+        <types:message>
+          <types:payload type="catalogue"/>
+        </types:message>
+      </types:output-event>
+    </types:processor-declaration>
+  </types:enrichment>
+  <types:enrichment select="#5b09f1bc-05dd-431b-a70e-ba185060ecd5">
+    <types:processor-declaration>
+      <types:output-event>
+        <types:message>
+          <types:payload type="catalogue"/>
+        </types:message>
+      </types:output-event>
+    </types:processor-declaration>
+  </types:enrichment>
+  <types:enrichment select="#a67eecb4-2a4a-49e0-ba78-4fcbb3ea1acb">
+    <types:operation-declaration>
+      <types:inputs>
+        <types:parameter name="inputParameters" type="catalogue"/>
+      </types:inputs>
+    </types:operation-declaration>
+  </types:enrichment>
+</types:mule>

@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns:file="http://www.mulesoft.org/schema/mule/file"
+	xmlns:http="http://www.mulesoft.org/schema/mule/http"
+	xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/file http://www.mulesoft.org/schema/mule/file/current/mule-file.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+	<http:listener-config name="HTTP_Listener_config" doc:name="HTTP Listener config" doc:id="045944af-86ce-451d-b3e2-758cf5bf9bee" >
+		<http:listener-connection host="0.0.0.0" port="8081" />
+	</http:listener-config>
+	<flow name="file-upload-apiFlow" doc:id="aefac3d7-be62-4cb9-b1e5-7a96031f8650" >
+		<http:listener doc:name="Listener" doc:id="6afc17d4-cd3d-4a23-87ee-9d6463d0359a" config-ref="HTTP_Listener_config" path="/fileupload"/>
+		<ee:transform doc:name="Transform Message" doc:id="c696e4b6-21e4-4ebb-8236-dd1bc406ecc2" >
+	<ee:message >
+	</ee:message>
+	<ee:variables >
+		<ee:set-variable variableName="path" ><![CDATA[%dw 2.0
+output application/java
+---
+	"<< Add folder path here >>" ++ payload.parts.'file'.headers.'Content-Disposition'.filename
+			]]>
+		</ee:set-variable>
+		<ee:set-variable variableName="filename" ><![CDATA[%dw 2.0
+output application/java
+---
+	payload.parts.'file'.headers.'Content-Disposition'.filename
+			]]>
+		</ee:set-variable>
+	</ee:variables>
+</ee:transform>
+		<file:write doc:name="Write" doc:id="e5de499f-830d-4fbe-a7ba-73de7a87d11e" path="#[vars.path]">
+			<file:content ><![CDATA[#[%dw 2.0
+output application/java
+input payload multipart/form-data
+---
+	payload.parts.'file'.content]]]>
+	</file:content>
+		</file:write>
+		<set-payload value="File Uploaded Successfully...." doc:name="Success Message" doc:id="46cce375-0184-4723-9f7f-0f289c4af757" />
+	</flow>
+</mule>

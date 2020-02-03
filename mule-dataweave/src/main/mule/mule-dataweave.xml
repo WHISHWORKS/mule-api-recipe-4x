@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns:http="http://www.mulesoft.org/schema/mule/http"
+	xmlns="http://www.mulesoft.org/schema/mule/core"
+	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+	<http:listener-config name="HTTP_Listener_config" doc:name="HTTP Listener config" doc:id="b74438a4-cabf-4dc7-9d2a-6148c15e7377" >
+		<http:listener-connection host="0.0.0.0" port="8081" />
+	</http:listener-config>
+	<flow name="mule-dataweaveFlow" doc:id="a2e2a6bc-5b7b-4e53-b972-3330ca6c92fa" >
+		<http:listener doc:name="Listener" doc:id="1d347bc3-10e6-4552-908c-79f7346e3f0c" config-ref="HTTP_Listener_config" path="/dataweave"/>
+		<ee:transform doc:name="Transform Message" doc:id="71dc34d2-98e0-4720-af6a-42d33cb62847" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+import dwl::utils as func
+import java!com::util::MyUtils
+output application/json
+---
+{
+	name: func::myCustomFunc(payload.name),
+	date: func::myformatDate(payload.date),
+	message: MyUtils::concatString(payload.name)
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+	</flow>
+</mule>
