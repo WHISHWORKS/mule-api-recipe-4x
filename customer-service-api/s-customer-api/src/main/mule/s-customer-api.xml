@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns:db="http://www.mulesoft.org/schema/mule/db"
+	xmlns:http="http://www.mulesoft.org/schema/mule/http"
+	xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+	<http:listener-config name="HTTP_Listener_config" doc:name="HTTP Listener config" doc:id="466afebd-d00f-4171-a0de-c5282288c719" basePath="/">
+		<http:listener-connection host="0.0.0.0" port="8082" />
+	</http:listener-config>
+	<db:config name="Database_Config" doc:name="Database Config" doc:id="2a7f4610-de4a-47eb-a26b-bedde81ace39" >
+		<db:generic-connection url="jdbc:mysql://localhost:3306/customer_db?serverTimezone=UTC" driverClassName="com.mysql.jdbc.Driver" user="customer_user" password="password" />
+	</db:config>
+	<flow name="GetFlow" doc:id="780e814e-7c0e-4ab7-b5b7-59ce3cd5360b" >
+		<http:listener doc:name="Listener" doc:id="21f1eb72-d549-4137-94ab-42fcce10266f" config-ref="HTTP_Listener_config" path="/getFlow/{customerId}" allowedMethods="GET"/>
+		<logger level="INFO" doc:name="Logger" doc:id="3e30ebca-fa98-4083-a6f8-4fa0092b374f" message="CustomerId: #[attributes.uriParams.customerId]"/>
+		<db:select doc:name="Select" doc:id="b7d1881c-b7d4-4f95-9510-dac81d76f714" config-ref="Database_Config">
+			<db:sql >select * from customer where id = :id</db:sql>
+			<db:input-parameters ><![CDATA[#[{ 'id' : attributes.uriParams.customerId}]]]></db:input-parameters>
+		</db:select>
+		<choice doc:name="Choice" doc:id="716b6e45-bebc-4430-be40-9b775a062ed0" >
+			<when expression="#[sizeOf(payload) != 0]">
+				<ee:transform doc:name="Transform Message" doc:id="f0aa2054-766a-4340-983e-d320e33cba2d">
+			<ee:message>
+				<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+payload]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+				<logger level="INFO" doc:name="Logger" doc:id="f123bfc0-3788-47f3-8305-389a70d5f2cc" message="Payload after select: #[payload]" />
+				<set-payload value="#[payload]" doc:name="Set Payload" doc:id="b292f58e-5c5b-4e64-9a5c-93c68d6b2a9b" />
+			</when>
+			<otherwise >
+				<set-payload value='#["NO data found."]' doc:name="Set Payload" doc:id="f8c6d21a-c880-461d-bd88-ef340239b283" />
+			</otherwise>
+		</choice>
+	</flow>
+	<flow name="PostFlow" doc:id="44496fe9-2c41-415a-806e-c4afec6e5fd7" >
+		<http:listener doc:name="Listener" doc:id="a9c2cb70-7811-41dd-ba34-602a9fa9f64a" config-ref="HTTP_Listener_config" path="/postFlow" allowedMethods="POST">
+			<ee:repeatable-file-store-stream bufferUnit="MB" />
+		</http:listener>
+		<logger level="INFO" doc:name="Logger" doc:id="b7c9a72c-5a8f-4994-9bc0-b9adc1af214b" message="#[payload]"/>
+		<db:insert doc:name="Insert" doc:id="d8b7871b-c5be-40ef-838f-2d99af86cd07" config-ref="Database_Config">
+			<db:sql >insert into customer (id, name, emailId, phone) values (:id, :name, :email, :phone) </db:sql>
+			<db:input-parameters ><![CDATA[#[payload]]]></db:input-parameters>
+		</db:insert>
+		<logger level="INFO" doc:name="Logger" doc:id="61ce8373-3724-4ca5-8c7c-3a316569f3d8" message="After insertion: #[sizeOf(payload)]"/>
+		<choice doc:name="Choice" doc:id="f6af9e01-b091-4f06-9b79-69f2179a9296" >
+			<when expression="#[payload.affectedRows == 1]">
+				<set-payload value='#["Record created successfully."]' doc:name="Set Payload" doc:id="2718907c-3328-4d6e-9c39-3d8459f21706" />
+			</when>
+			<otherwise >
+				<set-payload value='#["Not Created"]' doc:name="Set Payload" doc:id="30224cdf-048c-45c7-aa0b-a51ced2c964e" />
+			</otherwise>
+		</choice>
+	</flow>
+</mule>

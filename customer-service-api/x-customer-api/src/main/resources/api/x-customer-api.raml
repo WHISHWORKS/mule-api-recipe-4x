@@ -1,0 +1,86 @@
+#%RAML 1.0
+title: Customer API
+version: 1.0
+baseUri: http://localhost:8081
+
+types: 
+  customer : !include customer-type.raml
+
+/customers:
+  post :
+    description: API Post Service
+    body: 
+      application/json:
+        type: customer
+        example: |
+          {
+          "id": "1",
+          "name": "Eduard Walker",
+          "phone": "1-(318)596-8473",
+          "email": "ewalker0@liveinternet.ru"
+          }
+    responses:
+      201:
+        description: Created
+        body:
+          application/json:
+            example: |
+              {
+                "id": "1",
+                "name": "Eduard Walker",
+                "phone": "1-(318)596-8473",
+                "email": "ewalker0@liveinternet.ru"
+              }
+      400:
+        description: Invalid as some mandatory field is empty
+        body:
+          application/json:
+            example: |
+              {
+                "errorMessage": "Some mandatory field is empty."
+              }
+
+  /{customerId}:
+    get :
+      description: Customer get service
+      responses: 
+        200:
+          body: 
+            application/json:
+              example:
+                {
+                  "id": "1",
+                  "name": "Eduard Walker",
+                  "phone": "1-(318)596-8473",
+                  "email": "ewalker0@liveinternet.ru"
+               }
+        405:
+          body:     
+            application/json:
+              example:
+                {
+                  "errorMessage": "Some mandatory field is empty."
+                }
+
+  put:
+    description: Put Method
+    body: 
+      application/json:
+    responses:
+      200:
+        body:
+          application/json:
+            type: customer
+            example: |
+              {
+                "id": "1",
+                "name": "Eduard Walker",
+                "phone": "1-(318)596-8473",
+                "email": "ewalker0@liveinternet.ru"
+              }
+                     
+  delete:
+    description: Delete
+    body: 
+      application/json:
+         
